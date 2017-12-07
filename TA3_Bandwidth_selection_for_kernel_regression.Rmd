@@ -1,0 +1,54 @@
+---
+title: "Econometrics II TA Session"
+author: "Zaiwei Liu"
+date: "December 7, 2017"
+output: html_document
+---
+
+# Cars Data
+
+```{r}
+attach(cars)
+head(cars)
+plot(cars$speed, cars$dist)
+```
+
+# Leave-one-out Cross Validation
+
+```{r setup}
+cv <- function(data, used.function, bandwidth.grid)
+{
+  n <- nrow(data)
+  mse <- matrix(, nrow=length(bandwidth.grid), ncol=2)
+  for (b in 1:length(bandwidth.grid)){
+    cv.value <- rep(0, n-1)
+    for (i in 1:(n-1)){
+      new.data <- data[-i,]
+      funcargs <- list(reg.x=new.data[,1],reg.y=new.data[,2],x=data[i,1], h = bandwidth.grid[b])
+      cv.value[i] <- do.call(used.function, funcargs)
+    }
+    mse[b,] <- c(bandwidth.grid[b], 1/n*sum((new.data[,2]-cv.value)^2))
+  }
+  
+  ## MSE
+  colnames(mse) <- c("bandwidth", "mse")
+  return(mse)
+}
+
+### kernel estimator usind nadaraya-watson:
+fcn1 <- function(reg.x, reg.y, x, h){
+  return(ksmooth(reg.x, reg.y, x.point = x, kernel = "normal", bandwidth = h)$y)
+}
+
+### CV-score for kernel estimator:
+CV <- as.data.frame(cv(cbind(speed, dist), fcn1, seq(1,10,length.out=100)))
+plot(CV$bandwidth, CV$mse, type="b")
+CV[which(CV$mse == min(CV$mse)),]
+```
+
+# Fitted Kernel Regression
+
+```{r}
+plot(cars$speed, cars$dist)
+lines(ksmooth(cars$speed, cars$dist, kernel = "normal", bandwidth = 5.4545), col=2)
+```
